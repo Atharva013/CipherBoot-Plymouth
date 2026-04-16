@@ -1,0 +1,2 @@
+# This directory will contain animation frame PNGs (frame-0000.png to frame-0079.png)
+# Generate them by running: python3 scripts/generate_frames.py
