@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=CipherBoot
+Description=A cyberpunk-inspired Plymouth boot splash with cipher rain animation. Supports Ubuntu, Arch Linux, Pop!_OS, Zorin OS, Linux Mint, and elementary OS. Built from scratch by Atharva Jadhav.
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/CipherBoot
+ScriptFile=/usr/share/plymouth/themes/CipherBoot/CipherBoot.script

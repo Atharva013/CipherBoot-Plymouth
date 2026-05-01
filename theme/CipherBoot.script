@@ -1,0 +1,260 @@
+# CipherBoot.script — Plymouth Animation Script
+# Author: Atharva Jadhav
+# License: Apache-2.0
+#
+# Sections:
+#   1. Screen setup & background
+#   2. Zero-pad helper
+#   3. Animation frame loading (half-res → upscaled)
+#   4. Progress bar setup
+#   5. Refresh callback (animation + smooth progress)
+#   6. Boot progress callback
+#   7. System message display
+#   8. Password prompt (for encrypted disks)
+#   9. Normal display callback
+#   10. Quit handler (display-manager handoff)
+
+# ─── 1. Screen Setup ──────────────────────────────────────────────────────────
+
+screen_width  = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+bg.image  = Image("assets/background.png");
+bg.sprite = Sprite(bg.image);
+bg.sprite.SetX(0);
+bg.sprite.SetY(0);
+bg.sprite.SetZ(0);
+bg.sprite.SetImage(bg.image.Scale(screen_width, screen_height));
+
+# ─── 2. Zero-Pad Helper ───────────────────────────────────────────────────────
+
+fun zero_pad(num) {
+    if (num < 10)
+        return "000" + num;
+    if (num < 100)
+        return "00" + num;
+    if (num < 1000)
+        return "0" + num;
+    return "" + num;
+}
+
+# ─── 3. Load Animation Frames ─────────────────────────────────────────────────
+# Frames are 960x540 - upscaled once at load time to native resolution.
+
+frame_count = 48;
+
+for (i = 0; i < frame_count; i++) {
+    raw_img   = Image("assets/frames/frame-" + zero_pad(i) + ".png");
+    frames[i] = raw_img.Scale(screen_width, screen_height);
+}
+
+anim.sprite = Sprite();
+anim.sprite.SetX(0);
+anim.sprite.SetY(0);
+anim.sprite.SetZ(1);
+anim.sprite.SetImage(frames[0]);
+
+global.frame_idx  = 0;
+global.tick        = 0;
+global.last_time   = 0;
+
+# ─── 4. Progress Bar Setup ────────────────────────────────────────────────────
+
+bar_full_width = 500;
+bar_height     = 12;
+bar_x          = (screen_width  - bar_full_width) / 2;
+bar_y          = screen_height - 50;
+
+bar_bg.image  = Image("assets/progress/progress_bar_bg.png");
+bar_bg.sprite = Sprite(bar_bg.image);
+bar_bg.sprite.SetX(bar_x);
+bar_bg.sprite.SetY(bar_y);
+bar_bg.sprite.SetZ(2);
+bar_bg.sprite.SetImage(bar_bg.image.Scale(bar_full_width, bar_height));
+
+bar_fg.image  = Image("assets/progress/progress_bar_fg.png");
+bar_fg.sprite = Sprite();
+bar_fg.sprite.SetX(bar_x);
+bar_fg.sprite.SetY(bar_y);
+bar_fg.sprite.SetZ(3);
+
+# Pre-scale the bar to 1px wide so something is visible immediately
+bar_fg.sprite.SetImage(bar_fg.image.Scale(1, bar_height));
+
+# ─── 5. Refresh Callback ──────────────────────────────────────────────────────
+# Runs at 30fps for smooth animation.
+#
+# Animation: cycles through 48 frames at ~10fps (every 3rd tick).
+#            48 frames / 10fps = 4.8 second loop. Smooth cipher rain.
+#
+# Progress bar: two-phase approach that reaches 100% before quit:
+#   Phase 1 (system-driven): follows systemd boot progress reports
+#   Phase 2 (time-driven):   independent timer fills bar over ~3.5 seconds
+#   We take whichever is HIGHER, so the bar never stalls.
+#
+#   Fast restarts often quit Plymouth before system progress reaches 1.0, so
+#   the visual timer is intentionally quick. Slower boots may sit at 100% while
+#   the OS finishes driver/display-manager handoff, which is better than ending
+#   the splash with a half-empty bar.
+
+Plymouth.SetRefreshRate(30);
+
+global.progress_val = 0;
+global.system_progress = 0;
+global.is_quitting = 0;
+
+fun refresh_callback() {
+    global.tick++;
+
+    # ── Don't update anything after quit — keep framebuffer frozen ──
+    if (global.is_quitting)
+        return;
+
+    # ── Animation: advance every 3rd tick (10fps effective) ──
+    if (global.tick % 3 == 0) {
+        global.frame_idx++;
+        if (global.frame_idx >= frame_count)
+            global.frame_idx = 0;
+        anim.sprite.SetImage(frames[global.frame_idx]);
+    }
+
+    # ── Progress bar: time-based ramp that completes on fast restarts ──
+    # Plymouth boot progress can be sparse on some systems, so we use a visual
+    # floor based on refresh ticks and let real system progress pull it ahead.
+    time_progress = global.tick / 105;
+    if (time_progress > 1)
+        time_progress = 1;
+
+    # Use whichever is higher: system-reported or time-based
+    target = time_progress;
+    if (global.system_progress > target)
+        target = global.system_progress;
+
+    # Smooth approach: ease toward target without visibly lagging behind it.
+    diff = target - global.progress_val;
+    if (diff > 0) {
+        step = diff * 0.42;
+        if (step < 0.012)
+            step = 0.012;
+        global.progress_val = global.progress_val + step;
+    }
+
+    if (global.progress_val > 1)
+        global.progress_val = 1;
+
+    filled_width = Math.Int(global.progress_val * bar_full_width);
+    if (filled_width < 1)
+        filled_width = 1;
+    if (filled_width > bar_full_width)
+        filled_width = bar_full_width;
+    bar_fg.sprite.SetImage(
+        bar_fg.image.Scale(filled_width, bar_height)
+    );
+}
+
+Plymouth.SetRefreshFunction(refresh_callback);
+
+# ─── 6. Boot Progress Callback ────────────────────────────────────────────────
+# Stores system-reported progress. The refresh callback will use it if it is
+# higher than the time-based fallback.
+
+fun set_system_progress(progress) {
+    # The documented range is 0..1, but clamp defensively so odd callers or
+    # test commands cannot force broken bar geometry.
+    if (progress < 0)
+        progress = 0;
+    if (progress > 1)
+        progress = 1;
+
+    if (progress > global.system_progress)
+        global.system_progress = progress;
+}
+
+Plymouth.SetBootProgressFunction(fun (time, progress) {
+    global.last_time = time;
+    set_system_progress(progress);
+});
+
+Plymouth.SetSystemUpdateFunction(fun (progress) {
+    set_system_progress(progress);
+});
+
+# ─── 7. System Message Display ────────────────────────────────────────────────
+
+msg_sprite = Sprite();
+msg_sprite.SetZ(5);
+msg_sprite.SetX(screen_width / 2 - 150);
+msg_sprite.SetY(screen_height - 25);
+
+Plymouth.SetMessageFunction(fun (text) {
+    msg.image  = Image.Text(text, 0.0, 1.0, 1.0);
+    msg_sprite.SetImage(msg.image);
+    msg_sprite.SetX((screen_width - msg.image.GetWidth()) / 2);
+});
+
+# ─── 8. Password Prompt ───────────────────────────────────────────────────────
+# For LUKS/encrypted disk setups.  Uses persistent sprites to avoid leaks.
+
+dialog.sprite = Sprite();
+dialog.sprite.SetZ(10);
+
+global.bullets_sprite = Sprite();
+global.bullets_sprite.SetZ(11);
+
+Plymouth.SetDisplayPasswordFunction(fun (prompt, bullets) {
+    prompt_img    = Image.Text(prompt + " ", 0.0, 1.0, 1.0);
+    dialog.sprite.SetImage(prompt_img);
+    dialog.sprite.SetX((screen_width  - prompt_img.GetWidth())  / 2);
+    dialog.sprite.SetY((screen_height / 2) - 20);
+
+    bullet_text = "";
+    for (b = 0; b < bullets; b++) {
+        bullet_text = bullet_text + "● ";
+    }
+
+    if (bullet_text != "") {
+        bullets_img = Image.Text(bullet_text, 0.0, 1.0, 1.0);
+        global.bullets_sprite.SetImage(bullets_img);
+        global.bullets_sprite.SetX((screen_width  - bullets_img.GetWidth())  / 2);
+        global.bullets_sprite.SetY((screen_height / 2) + 10);
+    } else {
+        # No bullets yet — clear the sprite
+        global.bullets_sprite.SetImage(Image.Text(" ", 0.0, 1.0, 1.0));
+    }
+});
+
+# ─── 9. Normal Display Callback ───────────────────────────────────────────────
+# Called after prompts such as LUKS passphrases are complete. Clearing the
+# prompt sprites here prevents a stale prompt state during the next boot phase.
+
+fun clear_prompt() {
+    dialog.sprite.SetImage(Image.Text(" ", 0.0, 0.0, 0.0));
+    global.bullets_sprite.SetImage(Image.Text(" ", 0.0, 0.0, 0.0));
+}
+
+Plymouth.SetDisplayNormalFunction(fun () {
+    clear_prompt();
+});
+
+# ─── 10. Quit Handler ─────────────────────────────────────────────────────────
+# On quit:
+#   1. Snap progress bar to 100%
+#   2. Set is_quitting flag so refresh_callback freezes the framebuffer
+#   3. Keep ALL sprites visible — the DM will paint over them.
+#      Hiding sprites causes a black flash during the VT handoff gap.
+#
+# The display manager overwrites our framebuffer within 1-2 frames.
+
+Plymouth.SetQuitFunction(fun () {
+    # Freeze the refresh loop
+    global.is_quitting = 1;
+
+    # Snap progress bar to 100%
+    bar_fg.sprite.SetImage(bar_fg.image.Scale(bar_full_width, bar_height));
+
+    # Clear any password prompt artifacts
+    clear_prompt();
+
+    # Keep background and animation visible — DO NOT hide or destroy.
+    # Plymouth will hold the framebuffer until the DM takes over.
+});

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=CipherBoot
+Description=CipherBoot Neon variant — high-contrast green-on-black terminal aesthetic.
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/CipherBoot
+ScriptFile=/usr/share/plymouth/themes/CipherBoot/CipherBoot.script
