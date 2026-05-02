@@ -7,14 +7,12 @@ build/
 .venv/
 venv/
 
-# Generated assets (not committed — users generate locally)
-theme/assets/frames/*.png
-theme/assets/progress/*.png
-theme/assets/background.png
-
 # Logs
 *.log
 /tmp/
+
+# Codex/local workspace metadata
+.codex
 
 # OS
 .DS_Store
