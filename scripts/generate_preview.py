@@ -151,6 +151,18 @@ def main():
                         help="Milliseconds per frame (default: 80)")
     args = parser.parse_args()
 
+    if args.width < 1 or args.height < 1:
+        print("❌ --width and --height must be positive integers")
+        raise SystemExit(1)
+
+    if args.gif_frames < 1:
+        print("❌ --gif-frames must be at least 1")
+        raise SystemExit(1)
+
+    if args.duration < 1:
+        print("❌ --duration must be at least 1")
+        raise SystemExit(1)
+
     generate_preview(
         frames_dir=Path(args.frames_dir),
         progress_dir=Path(args.progress_dir),

@@ -85,8 +85,6 @@ Plymouth is not installed by default on Arch. Install it first:
 # From the official extra repository
 sudo pacman -S plymouth
 
-# Or from AUR (e.g. using yay)
-yay -S plymouth
 ```
 
 You also need to add `plymouth` to your `mkinitcpio` HOOKS (the install script handles this automatically, but if you prefer manual setup):
@@ -273,7 +271,7 @@ Please use the [GitHub Issues](https://github.com/Atharva013/CipherBoot-Plymouth
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the **Apache License 2.0** — see [LICENSE](LICENSE) for details.
 
@@ -281,7 +279,7 @@ Free to use, fork, and modify. Credit appreciated but not required.
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - The [Plymouth](https://www.freedesktop.org/wiki/Software/Plymouth/) project for the boot splash framework
 - The Ubuntu, Arch Linux, and open-source communities for feedback and testing
@@ -291,8 +289,8 @@ Free to use, fork, and modify. Credit appreciated but not required.
 
 <div align="center">
 
-**CipherBoot** — Open-source, built for the Linux community.
+**CipherBoot** — open source, built for Linux desktop customisation.
 
-*If this theme made your boot screen cooler, leave a ⭐ on the repo!*
+Feedback, distro reports, and pull requests are welcome.
 
 </div>

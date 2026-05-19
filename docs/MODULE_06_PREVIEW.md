@@ -6,7 +6,7 @@
 
 ## What This Module Does
 
-Users can see the theme on their desktop **without rebooting**. This is a unique feature of CipherBoot vs most Plymouth themes. Plymouth's built-in test mode runs the theme inside a window using `plymouthd --no-daemon`.
+Users can see the theme on their desktop **without rebooting**. Simple preview is reliable across desktops, while Plymouth's built-in test mode can run the theme inside a window using `plymouthd --no-daemon` when the display stack supports it.
 
 ## Two Modes
 
