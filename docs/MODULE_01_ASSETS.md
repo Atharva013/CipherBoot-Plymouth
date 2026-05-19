@@ -54,11 +54,11 @@ The visual identity is **cinematic cyberpunk terminal**:
 | Element | Value |
 |---|---|
 | Primary background colour | `#000000` or `#050508` (near-black) |
-| Primary accent colour | `#00FFFF` (cyan) |
-| Secondary accent | `#00BFBF` (darker teal) |
+| Primary accent colour | `#00FF41` (neon green) |
+| Secondary accent | `#00BFFF` or `#00FFFF` for alternate variants |
 | Font style in animation | Monospace — mix of ASCII chars, digits, and a few Japanese katakana |
-| Animation feel | Falling cipher "rain" columns — like Matrix but in TEAL not green |
-| Progress bar colour | `#00FFFF` on `#1a1a2e` background |
+| Animation feel | Falling cipher-rain columns with bright head characters and dim trails |
+| Progress bar colour | `#00FF41` on `#0d1a0d` background for the default neon variant |
 
 ---
 
@@ -74,7 +74,7 @@ pip install pillow
 python3 scripts/generate_frames.py --all
 
 # Generate with a specific variant
-python3 scripts/generate_frames.py --all --variant neon
+python3 scripts/generate_frames.py --all --variant ghost
 
 # Reproducible output
 python3 scripts/generate_frames.py --all --seed 42
@@ -108,4 +108,4 @@ The generator searches for monospace fonts in common locations:
 - [x] `theme/assets/progress/progress_bar_bg.png` exists
 - [x] `theme/assets/progress/progress_bar_fg.png` exists
 - [x] `theme/assets/background.png` exists
-- [x] Visually reviewed frames — cipher rain looks correct
+- [x] Visually reviewed frames — neon cipher rain looks correct

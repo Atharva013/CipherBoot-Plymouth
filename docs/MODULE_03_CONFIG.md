@@ -23,7 +23,7 @@ It's a small file but **required** — without it Plymouth won't recognise the t
 ```ini
 [Plymouth Theme]
 Name=CipherBoot
-Description=A cyberpunk-inspired Plymouth boot splash with cipher rain animation. Supports Ubuntu, Arch Linux, Pop!_OS, Zorin OS, Linux Mint, and elementary OS. Built from scratch by Atharva Jadhav.
+Description=CipherBoot Cipher variant — teal cipher-rain animation on deep black background.
 ModuleName=script
 
 [script]
@@ -51,12 +51,12 @@ Three `.plymouth` files exist for the visual variants:
 
 ```
 theme/
-├── CipherBoot.plymouth          # Default (cipher variant)
+├── CipherBoot.plymouth          # Cipher variant descriptor
 ├── CipherBoot-ghost.plymouth    # Ghost variant
-└── CipherBoot-neon.plymouth     # Neon variant
+└── CipherBoot-neon.plymouth     # Neon variant (default install)
 ```
 
-All variants share the same installed `ImageDir` and `ScriptFile`. During install, `install.sh --variant <name>` generates the matching frame, background, and progress assets into a temporary directory and then copies those assets into `/usr/share/plymouth/themes/CipherBoot/`.
+All variants share the same installed `ImageDir` and `ScriptFile`. Neon is the default install. During install, `install.sh --variant <name>` generates non-default variant frame, background, and progress assets into a temporary directory and then copies those assets into `/usr/share/plymouth/themes/CipherBoot/`.
 
 ---
 

@@ -7,9 +7,9 @@
 #           Arch Linux, EndeavourOS, Manjaro, Garuda, CachyOS
 #
 # Usage:
-#   sudo ./install.sh                     # Install default (cipher) variant
+#   sudo ./install.sh                     # Install default (neon) variant
+#   sudo ./install.sh --variant cipher    # Install cipher variant
 #   sudo ./install.sh --variant ghost     # Install ghost variant
-#   sudo ./install.sh --variant neon      # Install neon variant
 #   sudo ./install.sh --no-grub           # Skip GRUB configuration
 
 set -e   # Exit immediately on any error
@@ -26,7 +26,8 @@ RESET='\033[0m'
 THEME_NAME="CipherBoot"
 THEME_DIR="/usr/share/plymouth/themes/${THEME_NAME}"
 EXPECTED_FRAME_COUNT=48
-VARIANT="cipher"
+DEFAULT_VARIANT="neon"
+VARIANT="$DEFAULT_VARIANT"
 CONFIGURE_GRUB="yes"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ASSETS_DIR="${SCRIPT_DIR}/theme/assets"
@@ -50,10 +51,10 @@ while [[ "$#" -gt 0 ]]; do
             CONFIGURE_GRUB="no"
             ;;
         --help|-h)
-            echo "Usage: sudo ./install.sh [--variant cipher|ghost|neon] [--no-grub]"
+            echo "Usage: sudo ./install.sh [--variant neon|ghost|cipher] [--no-grub]"
             echo ""
             echo "Options:"
-            echo "  --variant    Choose colour variant: cipher (default), ghost, neon"
+            echo "  --variant    Choose colour variant: neon (default), ghost, cipher"
             echo "  --no-grub    Skip GRUB configuration (if you manage GRUB manually)"
             exit 0
             ;;
@@ -117,7 +118,7 @@ if ! command -v plymouthd &>/dev/null; then
 fi
 
 # ─── Prepare Variant Assets ───────────────────────────────────────────────────
-if [ "$VARIANT" != "cipher" ]; then
+if [ "$VARIANT" != "$DEFAULT_VARIANT" ]; then
     echo "🎨 Generating ${VARIANT} variant assets for this install..."
 
     if ! command -v python3 &>/dev/null; then
