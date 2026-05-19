@@ -283,6 +283,14 @@ Examples:
         print(f"❌ Unknown variant '{args.variant}'. Choose: neon | ghost | cipher")
         raise SystemExit(1)
 
+    if args.frames < 1:
+        print("❌ --frames must be at least 1")
+        raise SystemExit(1)
+
+    if args.width < 1 or args.height < 1:
+        print("❌ --width and --height must be positive integers")
+        raise SystemExit(1)
+
     preset      = VARIANTS[args.variant]
     rain_color  = args.color or preset["rain_color"]
     bg_color    = args.bg    or preset["bg_color"]

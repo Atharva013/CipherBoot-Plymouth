@@ -51,6 +51,7 @@ The install script configures GRUB to reduce the black screen gap between GRUB a
 - ❌ Never overwrites existing user-set values
 - ❌ Never removes any lines
 - ❌ Never changes GRUB theme settings
+- ❌ Never hides the GRUB menu or changes GRUB timeout behaviour
 - ❌ Never modifies anything else in the file
 - ❌ Never changes the default OS
 - ❌ Never removes existing boot parameters

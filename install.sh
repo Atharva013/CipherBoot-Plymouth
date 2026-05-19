@@ -44,6 +44,11 @@ trap cleanup EXIT
 while [[ "$#" -gt 0 ]]; do
     case $1 in
         --variant)
+            if [ "$#" -lt 2 ] || [[ "$2" == --* ]]; then
+                echo -e "${RED}❌ Missing value for --variant.${RESET}"
+                echo "   Valid options: neon | ghost | cipher"
+                exit 1
+            fi
             VARIANT="$2"
             shift
             ;;
@@ -70,7 +75,7 @@ done
 # Validate variant
 if [[ "$VARIANT" != "cipher" && "$VARIANT" != "ghost" && "$VARIANT" != "neon" ]]; then
     echo -e "${RED}❌ Invalid variant: '${VARIANT}'${RESET}"
-    echo "   Valid options: cipher | ghost | neon"
+    echo "   Valid options: neon | ghost | cipher"
     exit 1
 fi
 
@@ -99,7 +104,7 @@ echo ""
 if ! command -v plymouthd &>/dev/null; then
     echo -e "${YELLOW}⚠️  Plymouth not found. Installing now...${RESET}"
     if [ "$DISTRO_FAMILY" = "arch" ]; then
-        pacman -Sy --noconfirm plymouth || {
+        pacman -S --needed --noconfirm plymouth || {
             echo -e "${RED}❌ Failed to install Plymouth.${RESET}"
             echo -e "   Install manually: ${CYAN}sudo pacman -S plymouth${RESET}"
             exit 1
@@ -353,21 +358,6 @@ if [ "$CONFIGURE_GRUB" = "yes" ] && [ -f /etc/default/grub ]; then
         if ! kernel_arg_prefix_present "vt.handoff="; then
             append_kernel_arg "vt.handoff=7" "VT handoff"
         fi
-    fi
-
-    # --- GRUB_TIMEOUT_STYLE ---
-    # Hidden timeout = no visible GRUB menu delay (press Shift/Esc to access)
-    if grep -q "^GRUB_TIMEOUT_STYLE=" /etc/default/grub; then
-        CURRENT_STYLE=$(grep "^GRUB_TIMEOUT_STYLE=" /etc/default/grub | cut -d= -f2)
-        if [ "$CURRENT_STYLE" != "hidden" ]; then
-            sed -i 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=hidden/' /etc/default/grub
-            GRUB_CHANGED=1
-            echo -e "   Set GRUB_TIMEOUT_STYLE=hidden (no visible menu delay)"
-        fi
-    elif ! grep -q "^GRUB_TIMEOUT_STYLE=" /etc/default/grub; then
-        echo 'GRUB_TIMEOUT_STYLE=hidden' >> /etc/default/grub
-        GRUB_CHANGED=1
-        echo -e "   Added GRUB_TIMEOUT_STYLE=hidden"
     fi
 
     # Update GRUB config if changes were made
