@@ -31,7 +31,7 @@
 | Rebuild initrd | `update-initramfs -u` | `mkinitcpio -P` |
 | Extra setup | — | Auto-adds `plymouth` to `mkinitcpio` HOOKS |
 
-For non-default variants, the installer generates the selected variant's assets in `/tmp` before copying them into the Plymouth theme directory. This keeps the repository's default assets unchanged while making `--variant ghost` and `--variant neon` visually real.
+Neon is the default variant. For non-default variants, the installer generates the selected variant's assets in `/tmp` before copying them into the Plymouth theme directory. This keeps the repository's default assets unchanged while making `--variant ghost` and `--variant cipher` visually real.
 
 ---
 
@@ -66,7 +66,7 @@ sudo ./install.sh --no-grub
 
 | Flag | Description |
 |---|---|
-| `--variant cipher\|ghost\|neon` | Choose colour variant (default: cipher) |
+| `--variant neon\|ghost\|cipher` | Choose colour variant (default: neon) |
 | `--no-grub` | Skip GRUB configuration entirely |
 | `--help`, `-h` | Show usage |
 

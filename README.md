@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ CipherBoot Plymouth Theme
+# CipherBoot Plymouth Theme
 
 ### *A cinematic cipher-rain boot sequence for Linux*
 
@@ -11,9 +11,7 @@
 
 <br>
 
-> **Every boot. Every time. Unmistakably yours.**
-
-*A cyberpunk-inspired Plymouth boot splash theme featuring teal/cyan cipher rain animations, a sleek progress bar, and support for Ubuntu-based and Arch-based distributions — built from scratch and packaged for real installs.*
+*A cyberpunk-inspired Plymouth boot splash theme featuring neon cipher-rain animation, a compact progress bar, and installer support for Ubuntu-based and Arch-based distributions.*
 
 <br>
 
@@ -25,23 +23,20 @@
 
 ---
 
-## ✨ What Makes CipherBoot Different
+## What Makes CipherBoot Different
 
-| Feature | CipherBoot | Most Other Themes |
-|---|---|---|
-| Multi-distro auto-detection | ✅ | ❌ |
-| Ubuntu + Arch Linux support | ✅ | ❌ |
-| GRUB/framebuffer tuning for smoother handoff | ✅ | ❌ |
-| Preview without rebooting | ✅ | ❌ |
-| One-command install & uninstall | ✅ | Sometimes |
-| Multiple visual variants | ✅ | ❌ |
-| Frame generator for customisation | ✅ | ❌ |
-| Safe GRUB config (backs up yours) | ✅ | ❌ |
-| Optimised assets (~1.8 MB total) | ✅ | ❌ |
+| Capability | CipherBoot |
+|---|---|
+| Distro detection | Ubuntu and Arch family detection via `/etc/os-release` |
+| Install flow | Theme install, Plymouth registration, initramfs rebuild |
+| Variants | Neon default, plus ghost and cipher variants |
+| Preview | Reliable frame preview, plus best-effort Plymouth desktop preview |
+| Maintenance | Clean uninstall, GRUB backup, validation script |
+| Assets | 48 generated PNG8 frames, about 1.8 MB total |
 
 ---
 
-## 🖥️ Supported Distributions
+## Supported Distributions
 
 CipherBoot automatically detects your distribution and configures itself accordingly.
 
@@ -71,9 +66,7 @@ CipherBoot automatically detects your distribution and configures itself accordi
 
 ---
 
-## 🚀 Quick Install
-
-> **One command. That's it.**
+## Quick Install
 
 ```bash
 git clone https://github.com/Atharva013/CipherBoot-Plymouth
@@ -82,7 +75,7 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-Reboot and your new boot screen awaits.
+Reboot to see the default neon variant.
 
 ### Arch Linux Prerequisites
 
@@ -113,13 +106,14 @@ sudo ./install.sh
 
 | Flag | Description |
 |---|---|
+| `--variant neon` | Install the default neon variant |
 | `--variant ghost` | Install the ghost colour variant |
-| `--variant neon` | Install the neon colour variant |
+| `--variant cipher` | Install the teal cipher variant |
 | `--no-grub` | Skip GRUB configuration (if you manage GRUB manually) |
 
 ---
 
-## 👁️ Preview Before You Install
+## Preview Before You Install
 
 Don't want to reboot just to check how it looks? We've got you:
 
@@ -137,15 +131,15 @@ sudo ./preview.sh
 
 ---
 
-## 🎨 Theme Variants
+## Theme Variants
 
 CipherBoot ships with **3 visual variants**. Choose during install or switch anytime:
 
 | Variant | Description |
 |---|---|
-| `cipher` | Default — teal cipher rain on deep black |
+| `neon` | Default — high-contrast green-on-black terminal aesthetic |
 | `ghost` | Soft cyan pulse with dark navy background |
-| `neon` | High-contrast green-on-black terminal aesthetic |
+| `cipher` | Teal cipher rain on deep black |
 
 To switch variants after install:
 
@@ -157,7 +151,7 @@ Variant installs generate the matching frame/background/progress assets into a t
 
 ---
 
-## 🗑️ Uninstall
+## Uninstall
 
 Revert cleanly to your distro's default splash screen:
 
@@ -170,13 +164,13 @@ No manual config edits needed. The script handles everything — restores your p
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 CipherBoot-Plymouth/
 │
 ├── theme/                          # Core Plymouth theme files
-│   ├── CipherBoot.plymouth         # Theme descriptor — default (cipher) variant
+│   ├── CipherBoot.plymouth         # Theme descriptor — cipher variant
 │   ├── CipherBoot-ghost.plymouth   # Theme descriptor — ghost variant
 │   ├── CipherBoot-neon.plymouth    # Theme descriptor — neon variant
 │   ├── CipherBoot.script           # Animation logic (Plymouth scripting language)
@@ -216,7 +210,7 @@ CipherBoot-Plymouth/
 
 ---
 
-## ⚙️ How It Works
+## How It Works
 
 CipherBoot uses a performance-optimised rendering pipeline:
 
@@ -228,7 +222,7 @@ CipherBoot uses a performance-optimised rendering pipeline:
 
 ---
 
-## 🛠️ Customise It Yourself
+## Customise It Yourself
 
 Want to change the colours, text, or animation speed? The `scripts/generate_frames.py` tool lets you regenerate frames with your own parameters:
 
@@ -240,7 +234,7 @@ pip install pillow
 python3 scripts/generate_frames.py --all --color "#FF00FF"
 
 # Generate with a specific variant preset
-python3 scripts/generate_frames.py --all --variant neon
+python3 scripts/generate_frames.py --all --variant ghost
 
 # Reproducible output with a fixed seed
 python3 scripts/generate_frames.py --all --seed 42
@@ -254,7 +248,7 @@ sudo ./install.sh
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Found a bug? Want to add support for another distro? Have a new variant idea?
 
@@ -270,7 +264,7 @@ All PRs are welcome — even documentation fixes!
 
 ---
 
-## 🐛 Reporting Issues
+## Reporting Issues
 
 Please use the [GitHub Issues](https://github.com/Atharva013/CipherBoot-Plymouth/issues) tab with the appropriate template:
 
