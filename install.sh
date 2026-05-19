@@ -25,9 +25,19 @@ RESET='\033[0m'
 # ─── Constants ────────────────────────────────────────────────────────────────
 THEME_NAME="CipherBoot"
 THEME_DIR="/usr/share/plymouth/themes/${THEME_NAME}"
+EXPECTED_FRAME_COUNT=48
 VARIANT="cipher"
 CONFIGURE_GRUB="yes"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ASSETS_DIR="${SCRIPT_DIR}/theme/assets"
+TMP_ASSETS_DIR=""
+
+cleanup() {
+    if [ -n "$TMP_ASSETS_DIR" ] && [ -d "$TMP_ASSETS_DIR" ]; then
+        rm -rf "$TMP_ASSETS_DIR"
+    fi
+}
+trap cleanup EXIT
 
 # ─── Parse Arguments ──────────────────────────────────────────────────────────
 while [[ "$#" -gt 0 ]]; do
@@ -106,19 +116,54 @@ if ! command -v plymouthd &>/dev/null; then
     echo -e "${GREEN}✅ Plymouth installed.${RESET}"
 fi
 
+# ─── Prepare Variant Assets ───────────────────────────────────────────────────
+if [ "$VARIANT" != "cipher" ]; then
+    echo "🎨 Generating ${VARIANT} variant assets for this install..."
+
+    if ! command -v python3 &>/dev/null; then
+        echo -e "${RED}❌ python3 is required to generate variant assets.${RESET}"
+        exit 1
+    fi
+
+    TMP_ASSETS_DIR=$(mktemp -d /tmp/cipherboot-assets.XXXXXX)
+    mkdir -p "${TMP_ASSETS_DIR}/frames" "${TMP_ASSETS_DIR}/progress"
+
+    python3 "${SCRIPT_DIR}/scripts/generate_frames.py" \
+        --all \
+        --variant "$VARIANT" \
+        --output "${TMP_ASSETS_DIR}/frames" \
+        --assets-output "$TMP_ASSETS_DIR" \
+        --progress-output "${TMP_ASSETS_DIR}/progress" || {
+            echo -e "${RED}❌ Failed to generate ${VARIANT} variant assets.${RESET}"
+            echo -e "   Install Pillow and try again: ${CYAN}python3 -m pip install pillow${RESET}"
+            exit 1
+        }
+
+    SOURCE_ASSETS_DIR="$TMP_ASSETS_DIR"
+fi
+
 # ─── Check Frame Assets Exist ─────────────────────────────────────────────────
-FRAMES_DIR="${SCRIPT_DIR}/theme/assets/frames"
+FRAMES_DIR="${SOURCE_ASSETS_DIR}/frames"
 FRAME_COUNT=$(find "$FRAMES_DIR" -name "frame-*.png" 2>/dev/null | wc -l)
 
-if [ "$FRAME_COUNT" -lt 1 ]; then
-    echo -e "${RED}❌ No animation frames found in theme/assets/frames/${RESET}"
+if [ "$FRAME_COUNT" -lt "$EXPECTED_FRAME_COUNT" ]; then
+    echo -e "${RED}❌ Not enough animation frames found in theme/assets/frames/${RESET}"
     echo ""
-    echo -e "   You need to generate them first. Run:"
+    echo -e "   CipherBoot needs ${EXPECTED_FRAME_COUNT} contiguous animation frames. Run:"
     echo -e "   ${CYAN}pip install pillow${RESET}"
     echo -e "   ${CYAN}python3 scripts/generate_frames.py --all${RESET}"
     echo ""
     exit 1
 fi
+
+for i in $(seq 0 $((EXPECTED_FRAME_COUNT - 1))); do
+    frame_path="${FRAMES_DIR}/frame-$(printf "%04d" "$i").png"
+    if [ ! -f "$frame_path" ]; then
+        echo -e "${RED}❌ Missing animation frame: ${frame_path}${RESET}"
+        echo -e "   Regenerate assets with: ${CYAN}python3 scripts/generate_frames.py --all${RESET}"
+        exit 1
+    fi
+done
 
 echo -e "🎞️  Found ${FRAME_COUNT} animation frames."
 
@@ -145,15 +190,15 @@ else
 fi
 
 # Assets
-cp "${SCRIPT_DIR}/theme/assets/background.png"   "${THEME_DIR}/assets/" || {
+cp "${SOURCE_ASSETS_DIR}/background.png"   "${THEME_DIR}/assets/" || {
     echo -e "${RED}❌ background.png not found in theme/assets/${RESET}"; exit 1
 }
 # Clean old frames first (prevents stale frames when count changes)
 rm -f "${THEME_DIR}/assets/frames/"*.png 2>/dev/null || true
-cp "${SCRIPT_DIR}/theme/assets/frames"/*.png      "${THEME_DIR}/assets/frames/" || {
+cp "${SOURCE_ASSETS_DIR}/frames"/*.png      "${THEME_DIR}/assets/frames/" || {
     echo -e "${RED}❌ Failed to copy animation frames.${RESET}"; exit 1
 }
-cp "${SCRIPT_DIR}/theme/assets/progress"/*.png    "${THEME_DIR}/assets/progress/" || {
+cp "${SOURCE_ASSETS_DIR}/progress"/*.png    "${THEME_DIR}/assets/progress/" || {
     echo -e "${RED}❌ Failed to copy progress bar assets.${RESET}"; exit 1
 }
 
@@ -201,15 +246,15 @@ DeviceTimeout=8
 EOF
 echo -e "   Theme set in plymouthd.conf."
 
-# ─── GRUB Configuration (Seamless Boot) ───────────────────────────────────────
-# Configures GRUB to pass the framebuffer to the kernel, eliminating the
-# black screen gap between GRUB menu and Plymouth splash.
+# ─── GRUB Configuration (Smoother Boot Handoff) ───────────────────────────────
+# Configures GRUB to pass the framebuffer to the kernel and reduce the black
+# screen gap between GRUB menu and Plymouth splash.
 #
 # IMPORTANT: This only ADDS settings that are missing. It never removes or
 # overwrites existing user customizations.
 
 if [ "$CONFIGURE_GRUB" = "yes" ] && [ -f /etc/default/grub ]; then
-    echo "🔧 Configuring GRUB for seamless boot..."
+    echo "🔧 Configuring GRUB for smoother boot handoff..."
 
     # Create a backup (only if one doesn't already exist from a previous install)
     if [ ! -f /etc/default/grub.cipherboot.bak ]; then
@@ -218,6 +263,40 @@ if [ "$CONFIGURE_GRUB" = "yes" ] && [ -f /etc/default/grub ]; then
     fi
 
     GRUB_CHANGED=0
+
+    append_kernel_arg() {
+        local arg="$1"
+        local label="$2"
+
+        if ! grep -q "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub; then
+            echo "GRUB_CMDLINE_LINUX_DEFAULT=\"${arg}\"" >> /etc/default/grub
+            GRUB_CHANGED=1
+            echo -e "   Added '${arg}'${label:+ (${label})}"
+            return
+        fi
+
+        CURRENT_CMDLINE=$(grep "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub | head -1)
+        CURRENT_CMDLINE=${CURRENT_CMDLINE#GRUB_CMDLINE_LINUX_DEFAULT=\"}
+        CURRENT_CMDLINE=${CURRENT_CMDLINE%\"}
+        case " ${CURRENT_CMDLINE} " in
+            *" ${arg} "*) return ;;
+        esac
+
+        sed -i "s/^GRUB_CMDLINE_LINUX_DEFAULT=\"\\(.*\\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\\1 ${arg}\"/" /etc/default/grub
+        GRUB_CHANGED=1
+        echo -e "   Added '${arg}'${label:+ (${label})}"
+    }
+
+    kernel_arg_prefix_present() {
+        local prefix="$1"
+        CURRENT_CMDLINE=$(grep "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub | head -1)
+        CURRENT_CMDLINE=${CURRENT_CMDLINE#GRUB_CMDLINE_LINUX_DEFAULT=\"}
+        CURRENT_CMDLINE=${CURRENT_CMDLINE%\"}
+        case " ${CURRENT_CMDLINE} " in
+            *" ${prefix}"*) return 0 ;;
+            *) return 1 ;;
+        esac
+    }
 
     # --- GRUB_GFXMODE ---
     # Only set if currently commented out or missing entirely.
@@ -248,49 +327,30 @@ if [ "$CONFIGURE_GRUB" = "yes" ] && [ -f /etc/default/grub ]; then
         echo -e "   GRUB_GFXPAYLOAD_LINUX already set — keeping your value"
     fi
 
-    # --- Ensure 'splash' is present in kernel command line ---
-    if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub; then
-        CURRENT_CMDLINE=$(grep "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub | head -1)
-        if ! echo "$CURRENT_CMDLINE" | grep -q "splash"; then
-            sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 splash"/' /etc/default/grub
-            GRUB_CHANGED=1
-            echo -e "   Added 'splash' to GRUB_CMDLINE_LINUX_DEFAULT"
-        fi
-    fi
+    # --- Ensure quiet splash is present in kernel command line ---
+    # "quiet" prevents early boot text from forcing a visible VT repaint before
+    # Plymouth owns the display; "splash" asks Plymouth to show the theme.
+    append_kernel_arg "quiet" "less text before splash"
+    append_kernel_arg "splash" "enable Plymouth splash"
 
     # --- Early KMS modesetting ---
     # Forces GPU drivers to initialise the framebuffer early in boot.
     # Without this, there's a black screen gap while the kernel loads the
     # DRM driver.  Only adds params that are missing.
     if grep -q "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub; then
-        CURRENT_CMDLINE=$(grep "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub | head -1)
-
         # Intel integrated GPU — early modesetting
         if lspci 2>/dev/null | grep -qi "VGA.*Intel" || lsmod 2>/dev/null | grep -q "^i915"; then
-            if ! echo "$CURRENT_CMDLINE" | grep -q "i915.modeset=1"; then
-                sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 i915.modeset=1"/' /etc/default/grub
-                GRUB_CHANGED=1
-                echo -e "   Added i915.modeset=1 (Intel early KMS)"
-            fi
+            append_kernel_arg "i915.modeset=1" "Intel early KMS"
         fi
 
         # NVIDIA discrete GPU — early modesetting
         if lspci 2>/dev/null | grep -qi "VGA.*NVIDIA\|3D.*NVIDIA" || lsmod 2>/dev/null | grep -q "^nvidia_drm"; then
-            if ! echo "$CURRENT_CMDLINE" | grep -q "nvidia-drm.modeset=1"; then
-                sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 nvidia-drm.modeset=1"/' /etc/default/grub
-                GRUB_CHANGED=1
-                echo -e "   Added nvidia-drm.modeset=1 (NVIDIA early KMS)"
-            fi
+            append_kernel_arg "nvidia-drm.modeset=1" "NVIDIA early KMS"
         fi
 
-        # Re-read after possible changes above
-        CURRENT_CMDLINE=$(grep "^GRUB_CMDLINE_LINUX_DEFAULT=" /etc/default/grub | head -1)
-
-        # vt.handoff — Prevents VT switch black screen between GRUB → Plymouth
-        if ! echo "$CURRENT_CMDLINE" | grep -q "vt.handoff"; then
-            sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 vt.handoff=7"/' /etc/default/grub
-            GRUB_CHANGED=1
-            echo -e "   Added vt.handoff=7 (seamless VT handoff)"
+        # vt.handoff — reduces VT switch black screen between GRUB and Plymouth.
+        if ! kernel_arg_prefix_present "vt.handoff="; then
+            append_kernel_arg "vt.handoff=7" "VT handoff"
         fi
     fi
 
