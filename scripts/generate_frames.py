@@ -17,9 +17,9 @@ boot I/O overhead.
 
 Usage:
     python3 scripts/generate_frames.py --all              (recommended — generates everything)
-    python3 scripts/generate_frames.py --all --variant ghost
+    python3 scripts/generate_frames.py --all --variant neon
     python3 scripts/generate_frames.py --all --variant cipher
-    python3 scripts/generate_frames.py --all --signature "Dr. Octopus"
+    python3 scripts/generate_frames.py --all --signature "Dr.Octopus"
     python3 scripts/generate_frames.py --frames 48 --color "#00FF00"
     python3 scripts/generate_frames.py --all --seed 42    (reproducible output)
 """
@@ -367,14 +367,14 @@ def main():
         epilog="""
 Examples:
   python3 scripts/generate_frames.py --all
-  python3 scripts/generate_frames.py --all --variant cipher
-  python3 scripts/generate_frames.py --all --signature "Dr. Octopus"
+  python3 scripts/generate_frames.py --all --variant neon
+  python3 scripts/generate_frames.py --all --signature "Dr.Octopus"
   python3 scripts/generate_frames.py --all --seed 42
   python3 scripts/generate_frames.py --frames 48 --color "#FF00FF"
         """
     )
     parser.add_argument("--all",     action="store_true", help="Generate frames + background + progress bars")
-    parser.add_argument("--variant", default="neon",      help="Colour preset: neon | ghost | cipher")
+    parser.add_argument("--variant", default="ghost",     help="Colour preset: ghost | neon | cipher")
     parser.add_argument("--width",   type=int, default=960,  help="Frame width  (default: 960 — half of 1920)")
     parser.add_argument("--height",  type=int, default=540,  help="Frame height (default: 540 — half of 1080)")
     parser.add_argument("--frames",  type=int, default=48,   help="Number of animation frames (default: 48)")
@@ -393,7 +393,7 @@ Examples:
         print(f"   🎲 Using random seed: {args.seed}")
 
     if args.variant not in VARIANTS:
-        print(f"❌ Unknown variant '{args.variant}'. Choose: neon | ghost | cipher")
+        print(f"❌ Unknown variant '{args.variant}'. Choose: ghost | neon | cipher")
         raise SystemExit(1)
 
     if args.frames < 1:
