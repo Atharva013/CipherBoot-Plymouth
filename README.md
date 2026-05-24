@@ -107,6 +107,8 @@ sudo ./install.sh
 | `--variant neon` | Install the default neon variant |
 | `--variant ghost` | Install the ghost colour variant |
 | `--variant cipher` | Install the teal cipher variant |
+| `--signature "Dr. Octopus"` | Add a centered boot signature, max 16 characters |
+| `--no-signature` | Disable the interactive signature prompt |
 | `--no-grub` | Skip GRUB configuration (if you manage GRUB manually) |
 
 ---
@@ -149,6 +151,18 @@ Variant installs generate the matching frame/background/progress assets into a t
 
 ---
 
+## Boot Signature
+
+CipherBoot can place a short name, handle, or machine label in the center of the splash:
+
+```bash
+sudo ./install.sh --variant neon --signature "Dr. Octopus"
+```
+
+The installer normalizes signatures to uppercase, supports letters, numbers, spaces, dots, hyphens, and underscores, and caps the text at 16 characters so it stays centered with comfortable side spacing.
+
+---
+
 ## Uninstall
 
 Revert cleanly to your distro's default splash screen:
@@ -174,6 +188,7 @@ CipherBoot-Plymouth/
 │   ├── CipherBoot.script           # Animation logic (Plymouth scripting language)
 │   └── assets/
 │       ├── background.png          # Full-screen background image
+│       ├── signature.png           # Optional centered boot signature overlay
 │       ├── frames/                 # Animation frame PNGs (frame-0000.png → frame-0047.png)
 │       └── progress/               # Progress bar sprites
 │
@@ -214,9 +229,10 @@ CipherBoot uses a performance-optimised rendering pipeline:
 
 1. **Frames are generated at half resolution** (960×540) and upscaled to your native resolution at runtime by Plymouth's scaler
 2. **PNG8 palette mode** keeps the 48-frame animation small while giving the loop enough length to avoid a visible restart every couple of seconds
-3. **GRUB is configured** to keep the framebuffer payload, enable `quiet splash`, and add early modesetting hints where appropriate
-4. **Hybrid progress bar** smoothly interpolates between system-reported progress and a quick visual timer, so fast restarts still reach a complete bar before Plymouth exits
-5. **Prompt and quit handling** keeps the theme visible through LUKS password prompts and leaves the final frame in place for the display-manager handoff where Plymouth/driver timing allows it. A short black screen can still appear on some systems while the kernel, GPU driver, and display manager negotiate ownership of the framebuffer.
+3. **Boot signatures** are rendered as a theme-colored overlay, keeping the name centered without covering the full screen
+4. **GRUB is configured** to keep the framebuffer payload, enable `quiet splash`, and add early modesetting hints where appropriate
+5. **Hybrid progress bar** smoothly interpolates between system-reported progress and a quick visual timer, so fast restarts still reach a complete bar before Plymouth exits
+6. **Prompt and quit handling** keeps the theme visible through LUKS password prompts and leaves the final frame in place for the display-manager handoff where Plymouth/driver timing allows it. A short black screen can still appear on some systems while the kernel, GPU driver, and display manager negotiate ownership of the framebuffer.
 
 ---
 

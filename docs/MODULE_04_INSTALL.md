@@ -14,10 +14,11 @@
 2. Detecting the user's Linux distribution (Ubuntu-based or Arch-based)
 3. Checking Plymouth is installed (and installing it if not — via `apt` or `pacman`)
 4. Copying theme files to the correct system directory
-5. Registering the theme with Plymouth (`plymouth-set-default-theme` or `update-alternatives`)
-6. Configuring GRUB for a smoother splash handoff (safe — only adds missing settings)
-7. Rebuilding initramfs (`update-initramfs` on Ubuntu, `mkinitcpio` on Arch)
-8. Printing a clear success message
+5. Optionally generating a centered boot signature overlay
+6. Registering the theme with Plymouth (`plymouth-set-default-theme` or `update-alternatives`)
+7. Configuring GRUB for a smoother splash handoff (safe — only adds missing settings)
+8. Rebuilding initramfs (`update-initramfs` on Ubuntu, `mkinitcpio` on Arch)
+9. Printing a clear success message
 
 ---
 
@@ -32,6 +33,8 @@
 | Extra setup | — | Auto-adds `plymouth` to `mkinitcpio` HOOKS |
 
 Neon is the default variant. For non-default variants, the installer generates the selected variant's assets in `/tmp` before copying them into the Plymouth theme directory. This keeps the repository's default assets unchanged while making `--variant ghost` and `--variant cipher` visually real.
+
+If a boot signature is provided, the installer also regenerates assets in `/tmp` so the signature colour matches the selected variant.
 
 ---
 
@@ -68,6 +71,8 @@ sudo ./install.sh --no-grub
 | Flag | Description |
 |---|---|
 | `--variant neon\|ghost\|cipher` | Choose colour variant (default: neon) |
+| `--signature TEXT` | Add a centered boot signature, max 16 characters |
+| `--no-signature` | Disable the interactive signature prompt |
 | `--no-grub` | Skip GRUB configuration entirely |
 | `--help`, `-h` | Show usage |
 
@@ -95,3 +100,4 @@ HOOKS=(base plymouth udev autodetect modconf block filesystems keyboard fsck)
 - [x] initramfs rebuilt (update-initramfs / mkinitcpio)
 - [x] --no-grub flag functional
 - [x] --variant flag functional
+- [x] --signature and --no-signature flags functional

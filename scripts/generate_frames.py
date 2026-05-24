@@ -7,8 +7,9 @@ License: Apache-2.0
 Generates ALL visual assets needed by the CipherBoot Plymouth theme:
   1. Animation frames     → theme/assets/frames/frame-0000.png ... frame-0047.png
   2. background.png       → theme/assets/background.png
-  3. progress_bar_bg.png  → theme/assets/progress/progress_bar_bg.png
-  4. progress_bar_fg.png  → theme/assets/progress/progress_bar_fg.png
+  3. signature.png        → theme/assets/signature.png
+  4. progress_bar_bg.png  → theme/assets/progress/progress_bar_bg.png
+  5. progress_bar_fg.png  → theme/assets/progress/progress_bar_fg.png
 
 Frames are rendered at half resolution (960×540) and upscaled by the Plymouth
 script at runtime. This keeps total asset payload small and helps reduce early
@@ -18,6 +19,7 @@ Usage:
     python3 scripts/generate_frames.py --all              (recommended — generates everything)
     python3 scripts/generate_frames.py --all --variant ghost
     python3 scripts/generate_frames.py --all --variant cipher
+    python3 scripts/generate_frames.py --all --signature "Dr. Octopus"
     python3 scripts/generate_frames.py --frames 48 --color "#00FF00"
     python3 scripts/generate_frames.py --all --seed 42    (reproducible output)
 """
@@ -74,6 +76,7 @@ BAR_WIDTH    = 500
 BAR_HEIGHT   = 12
 FONT_SIZE    = 14          # Smaller font for half-res canvas
 COL_SPACING  = 16          # Tighter columns at half-res
+SIGNATURE_MAX_LEN = 16
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -110,6 +113,48 @@ def load_font(size: int):
             continue
     print("   ⚠️  No monospace font found — using PIL default (smaller text)")
     return ImageFont.load_default()
+
+
+def load_signature_font(size: int):
+    """Try to load a clear monospace font for the boot signature."""
+    paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf",
+        "/usr/share/fonts/TTF/DejaVuSansMono.ttf",
+        "/usr/share/fonts/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/noto/NotoSansMono-Regular.ttf",
+    ]
+    for p in paths:
+        try:
+            return ImageFont.truetype(p, size)
+        except IOError:
+            continue
+    return load_font(size)
+
+
+def normalize_signature(value: str) -> str:
+    """Normalize a boot signature for predictable Plymouth rendering."""
+    allowed = set(string.ascii_uppercase + string.digits + " ._-")
+    cleaned = "".join(ch for ch in value.upper() if ch in allowed)
+    cleaned = " ".join(cleaned.split())
+    return cleaned[:SIGNATURE_MAX_LEN]
+
+
+def text_size(draw: ImageDraw.ImageDraw, text: str, font) -> tuple:
+    """Return text width and height using Pillow APIs available across versions."""
+    if hasattr(draw, "textbbox"):
+        left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
+        return right - left, bottom - top
+    return draw.textsize(text, font=font)
+
+
+def draw_soft_panel(draw: ImageDraw.ImageDraw, box: list, radius: int, fill, outline, width: int):
+    """Draw a rounded rectangle when Pillow supports it, otherwise a rectangle."""
+    if hasattr(draw, "rounded_rectangle"):
+        draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
+    else:
+        draw.rectangle(box, fill=fill, outline=outline)
 
 
 # ─── Generators ───────────────────────────────────────────────────────────────
@@ -163,6 +208,72 @@ def make_progress_bars(bar_bg, bar_fg, out_dir):
     fg_draw.rectangle([0, 0, BAR_WIDTH - 1, BAR_HEIGHT - 1], outline=bar_fg)
     fg_img.save(out_dir / "progress_bar_fg.png", "PNG")
     print(f"   ✅ {out_dir / 'progress_bar_fg.png'}")
+
+
+def make_signature(width, height, signature, accent_color, bg_color, out_dir):
+    """Generate a transparent full-screen signature overlay."""
+    signature = normalize_signature(signature or "")
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    path = out_dir / "signature.png"
+
+    if not signature:
+        img.save(path, "PNG", optimize=True)
+        print(f"   ✅ {path} (empty)")
+        return
+
+    draw = ImageDraw.Draw(img)
+    accent = hex_to_rgb(accent_color)
+    bg = hex_to_rgb(bg_color)
+
+    max_text_width = int(width * 0.54)
+    font_size = 42
+    while font_size > 24:
+        font = load_signature_font(font_size)
+        text_w, text_h = text_size(draw, signature, font)
+        if text_w <= max_text_width:
+            break
+        font_size -= 2
+
+    font = load_signature_font(font_size)
+    text_w, text_h = text_size(draw, signature, font)
+
+    panel_pad_x = 48
+    panel_pad_y = 18
+    panel_w = min(width - 160, text_w + panel_pad_x * 2)
+    panel_h = text_h + panel_pad_y * 2
+    panel_x = (width - panel_w) // 2
+    panel_y = int(height * 0.44) - panel_h // 2
+    text_x = (width - text_w) // 2
+    text_y = panel_y + (panel_h - text_h) // 2 - 2
+
+    panel_fill = (*blend(bg, 0.86, (0, 0, 0)), 208)
+    border = (*accent, 210)
+    dim_border = (*blend(accent, 0.35, bg), 150)
+
+    draw_soft_panel(
+        draw,
+        [panel_x, panel_y, panel_x + panel_w, panel_y + panel_h],
+        10,
+        panel_fill,
+        dim_border,
+        2,
+    )
+
+    line_y_top = panel_y + 8
+    line_y_bottom = panel_y + panel_h - 8
+    draw.line([(panel_x + 18, line_y_top), (panel_x + 72, line_y_top)], fill=border, width=2)
+    draw.line([(panel_x + panel_w - 72, line_y_bottom), (panel_x + panel_w - 18, line_y_bottom)], fill=border, width=2)
+
+    for radius, alpha in ((3, 35), (1, 95)):
+        glow = (*accent, alpha)
+        for dx in range(-radius, radius + 1, max(1, radius)):
+            for dy in range(-radius, radius + 1, max(1, radius)):
+                if dx or dy:
+                    draw.text((text_x + dx, text_y + dy), signature, font=font, fill=glow)
+
+    draw.text((text_x, text_y), signature, font=font, fill=(*accent, 245))
+    img.save(path, "PNG", optimize=True)
+    print(f"   ✅ {path} ({signature})")
 
 
 def make_frames(width, height, frame_count, rain_color, bg_color, frames_dir):
@@ -257,6 +368,7 @@ def main():
 Examples:
   python3 scripts/generate_frames.py --all
   python3 scripts/generate_frames.py --all --variant cipher
+  python3 scripts/generate_frames.py --all --signature "Dr. Octopus"
   python3 scripts/generate_frames.py --all --seed 42
   python3 scripts/generate_frames.py --frames 48 --color "#FF00FF"
         """
@@ -268,6 +380,7 @@ Examples:
     parser.add_argument("--frames",  type=int, default=48,   help="Number of animation frames (default: 48)")
     parser.add_argument("--color",   default=None,        help="Override rain colour e.g. #00FF00")
     parser.add_argument("--bg",      default=None,        help="Override background colour")
+    parser.add_argument("--signature", default="",        help="Optional boot signature text (max 16 characters)")
     parser.add_argument("--output",  default=None,        help="Override frames output directory")
     parser.add_argument("--assets-output", default=None,  help="Override asset output directory")
     parser.add_argument("--progress-output", default=None, help="Override progress asset output directory")
@@ -294,6 +407,7 @@ Examples:
     preset      = VARIANTS[args.variant]
     rain_color  = args.color or preset["rain_color"]
     bg_color    = args.bg    or preset["bg_color"]
+    signature   = normalize_signature(args.signature)
     frames_dir  = Path(args.output) if args.output else Path("theme/assets/frames")
     assets_dir  = Path(args.assets_output) if args.assets_output else Path("theme/assets")
     progress_dir = Path(args.progress_output) if args.progress_output else assets_dir / "progress"
@@ -301,6 +415,7 @@ Examples:
     print(f"\n⚡ CipherBoot Asset Generator")
     print(f"   Variant  : {args.variant}")
     print(f"   Rain     : {rain_color}   BG: {bg_color}")
+    print(f"   Signature: {signature or '(disabled)'}")
     print(f"   Frames   : {args.frames} @ {args.width}×{args.height}")
     print(f"   Mode     : Optimised PNG8 (palette)")
     print()
@@ -309,6 +424,7 @@ Examples:
         assets_dir.mkdir(parents=True, exist_ok=True)
         progress_dir.mkdir(parents=True, exist_ok=True)
         make_background(args.width, args.height, bg_color, assets_dir)
+        make_signature(args.width, args.height, signature, preset["bar_fg_color"], bg_color, assets_dir)
         make_progress_bars(preset["bar_bg_color"], preset["bar_fg_color"], progress_dir)
 
     make_frames(args.width, args.height, args.frames, rain_color, bg_color, frames_dir)

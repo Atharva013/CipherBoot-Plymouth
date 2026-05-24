@@ -6,13 +6,14 @@
 #   1. Screen setup & background
 #   2. Zero-pad helper
 #   3. Animation frame loading (half-res → upscaled)
-#   4. Progress bar setup
-#   5. Refresh callback (animation + smooth progress)
-#   6. Boot progress callback
-#   7. System message display
-#   8. Password prompt (for encrypted disks)
-#   9. Normal display callback
-#   10. Quit handler (display-manager handoff)
+#   4. Boot signature overlay
+#   5. Progress bar setup
+#   6. Refresh callback (animation + smooth progress)
+#   7. Boot progress callback
+#   8. System message display
+#   9. Password prompt (for encrypted disks)
+#   10. Normal display callback
+#   11. Quit handler (display-manager handoff)
 
 # ─── 1. Screen Setup ──────────────────────────────────────────────────────────
 
@@ -58,7 +59,16 @@ global.frame_idx  = 0;
 global.tick        = 0;
 global.last_time   = 0;
 
-# ─── 4. Progress Bar Setup ────────────────────────────────────────────────────
+# ─── 4. Boot Signature Overlay ────────────────────────────────────────────────
+
+signature.image  = Image("assets/signature.png");
+signature.sprite = Sprite(signature.image);
+signature.sprite.SetX(0);
+signature.sprite.SetY(0);
+signature.sprite.SetZ(4);
+signature.sprite.SetImage(signature.image.Scale(screen_width, screen_height));
+
+# ─── 5. Progress Bar Setup ────────────────────────────────────────────────────
 
 bar_full_width = 500;
 bar_height     = 12;
@@ -81,7 +91,7 @@ bar_fg.sprite.SetZ(3);
 # Pre-scale the bar to 1px wide so something is visible immediately
 bar_fg.sprite.SetImage(bar_fg.image.Scale(1, bar_height));
 
-# ─── 5. Refresh Callback ──────────────────────────────────────────────────────
+# ─── 6. Refresh Callback ──────────────────────────────────────────────────────
 # Runs at 30fps for smooth animation.
 #
 # Animation: cycles through 48 frames at ~10fps (every 3rd tick).
@@ -154,7 +164,7 @@ fun refresh_callback() {
 
 Plymouth.SetRefreshFunction(refresh_callback);
 
-# ─── 6. Boot Progress Callback ────────────────────────────────────────────────
+# ─── 7. Boot Progress Callback ────────────────────────────────────────────────
 # Stores system-reported progress. The refresh callback will use it if it is
 # higher than the time-based fallback.
 
@@ -179,7 +189,7 @@ Plymouth.SetSystemUpdateFunction(fun (progress) {
     set_system_progress(progress);
 });
 
-# ─── 7. System Message Display ────────────────────────────────────────────────
+# ─── 8. System Message Display ────────────────────────────────────────────────
 
 msg_sprite = Sprite();
 msg_sprite.SetZ(5);
@@ -192,7 +202,7 @@ Plymouth.SetMessageFunction(fun (text) {
     msg_sprite.SetX((screen_width - msg.image.GetWidth()) / 2);
 });
 
-# ─── 8. Password Prompt ───────────────────────────────────────────────────────
+# ─── 9. Password Prompt ───────────────────────────────────────────────────────
 # For LUKS/encrypted disk setups.  Uses persistent sprites to avoid leaks.
 
 dialog.sprite = Sprite();
@@ -202,6 +212,8 @@ global.bullets_sprite = Sprite();
 global.bullets_sprite.SetZ(11);
 
 Plymouth.SetDisplayPasswordFunction(fun (prompt, bullets) {
+    signature.sprite.SetImage(Image.Text(" ", 0.0, 0.0, 0.0));
+
     prompt_img    = Image.Text(prompt + " ", 0.0, 1.0, 1.0);
     dialog.sprite.SetImage(prompt_img);
     dialog.sprite.SetX((screen_width  - prompt_img.GetWidth())  / 2);
@@ -223,20 +235,21 @@ Plymouth.SetDisplayPasswordFunction(fun (prompt, bullets) {
     }
 });
 
-# ─── 9. Normal Display Callback ───────────────────────────────────────────────
+# ─── 10. Normal Display Callback ──────────────────────────────────────────────
 # Called after prompts such as LUKS passphrases are complete. Clearing the
 # prompt sprites here prevents a stale prompt state during the next boot phase.
 
 fun clear_prompt() {
     dialog.sprite.SetImage(Image.Text(" ", 0.0, 0.0, 0.0));
     global.bullets_sprite.SetImage(Image.Text(" ", 0.0, 0.0, 0.0));
+    signature.sprite.SetImage(signature.image.Scale(screen_width, screen_height));
 }
 
 Plymouth.SetDisplayNormalFunction(fun () {
     clear_prompt();
 });
 
-# ─── 10. Quit Handler ─────────────────────────────────────────────────────────
+# ─── 11. Quit Handler ─────────────────────────────────────────────────────────
 # On quit:
 #   1. Snap progress bar to 100%
 #   2. Set is_quitting flag so refresh_callback freezes the framebuffer

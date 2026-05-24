@@ -10,6 +10,8 @@
 #   sudo ./install.sh                     # Install default (neon) variant
 #   sudo ./install.sh --variant cipher    # Install cipher variant
 #   sudo ./install.sh --variant ghost     # Install ghost variant
+#   sudo ./install.sh --signature "ROOT-LAB"
+#   sudo ./install.sh --no-signature      # Disable interactive signature prompt
 #   sudo ./install.sh --no-grub           # Skip GRUB configuration
 
 set -e   # Exit immediately on any error
@@ -29,6 +31,8 @@ EXPECTED_FRAME_COUNT=48
 DEFAULT_VARIANT="neon"
 VARIANT="$DEFAULT_VARIANT"
 CONFIGURE_GRUB="yes"
+SIGNATURE=""
+SIGNATURE_MODE="ask"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ASSETS_DIR="${SCRIPT_DIR}/theme/assets"
 TMP_ASSETS_DIR=""
@@ -39,6 +43,14 @@ cleanup() {
     fi
 }
 trap cleanup EXIT
+
+sanitize_signature() {
+    printf '%s' "$1" \
+        | tr '[:lower:]' '[:upper:]' \
+        | tr -cd 'A-Z0-9 ._-' \
+        | sed -e 's/[[:space:]]\+/ /g' -e 's/^ //' -e 's/ $//' \
+        | cut -c 1-16
+}
 
 # ─── Parse Arguments ──────────────────────────────────────────────────────────
 while [[ "$#" -gt 0 ]]; do
@@ -55,11 +67,28 @@ while [[ "$#" -gt 0 ]]; do
         --no-grub)
             CONFIGURE_GRUB="no"
             ;;
+        --signature)
+            if [ "$#" -lt 2 ] || [[ "$2" == --* ]]; then
+                echo -e "${RED}❌ Missing value for --signature.${RESET}"
+                echo "   Example: sudo ./install.sh --signature \"Dr. Octopus\""
+                exit 1
+            fi
+            SIGNATURE="$(sanitize_signature "$2")"
+            SIGNATURE_MODE="set"
+            shift
+            ;;
+        --no-signature)
+            SIGNATURE=""
+            SIGNATURE_MODE="none"
+            ;;
         --help|-h)
-            echo "Usage: sudo ./install.sh [--variant neon|ghost|cipher] [--no-grub]"
+            echo "Usage: sudo ./install.sh [--variant neon|ghost|cipher] [--signature TEXT] [--no-signature] [--no-grub]"
             echo ""
             echo "Options:"
             echo "  --variant    Choose colour variant: neon (default), ghost, cipher"
+            echo "  --signature  Add a centered boot signature, max 16 characters"
+            echo "  --no-signature"
+            echo "               Disable the interactive signature prompt"
             echo "  --no-grub    Skip GRUB configuration (if you manage GRUB manually)"
             exit 0
             ;;
@@ -76,6 +105,12 @@ done
 if [[ "$VARIANT" != "cipher" && "$VARIANT" != "ghost" && "$VARIANT" != "neon" ]]; then
     echo -e "${RED}❌ Invalid variant: '${VARIANT}'${RESET}"
     echo "   Valid options: neon | ghost | cipher"
+    exit 1
+fi
+
+if [ "$SIGNATURE_MODE" = "set" ] && [ -z "$SIGNATURE" ]; then
+    echo -e "${RED}❌ Signature contains no supported characters.${RESET}"
+    echo "   Use letters, numbers, spaces, dots, hyphens, or underscores."
     exit 1
 fi
 
@@ -97,6 +132,7 @@ echo -e "${CYAN}${BOLD}⚡ CipherBoot Plymouth Theme Installer${RESET}"
 echo -e "   Distro  : ${GREEN}${DISTRO_NAME}${RESET}"
 echo -e "   Family  : ${GREEN}${DISTRO_FAMILY}${RESET}"
 echo -e "   Variant : ${GREEN}${VARIANT}${RESET}"
+echo -e "   Signature: ${GREEN}${SIGNATURE:-disabled}${RESET}"
 echo -e "   Target  : ${GREEN}${THEME_DIR}${RESET}"
 echo ""
 
@@ -122,8 +158,24 @@ if ! command -v plymouthd &>/dev/null; then
     echo -e "${GREEN}✅ Plymouth installed.${RESET}"
 fi
 
+# ─── Optional Boot Signature ──────────────────────────────────────────────────
+if [ "$SIGNATURE_MODE" = "ask" ] && [ -t 0 ]; then
+    echo "✍️  Optional boot signature"
+    echo "   Add a short name/handle in the center of the splash? Max 16 characters."
+    SIGNATURE_INPUT=""
+    read -r -p "   Signature [leave blank to disable]: " SIGNATURE_INPUT || true
+    SIGNATURE="$(sanitize_signature "$SIGNATURE_INPUT")"
+    if [ -n "$SIGNATURE_INPUT" ] && [ -z "$SIGNATURE" ]; then
+        echo -e "${YELLOW}   Signature skipped: no supported characters found.${RESET}"
+    elif [ -n "$SIGNATURE" ]; then
+        echo -e "   Using signature: ${GREEN}${SIGNATURE}${RESET}"
+    else
+        echo "   Signature disabled."
+    fi
+fi
+
 # ─── Prepare Variant Assets ───────────────────────────────────────────────────
-if [ "$VARIANT" != "$DEFAULT_VARIANT" ]; then
+if [ "$VARIANT" != "$DEFAULT_VARIANT" ] || [ -n "$SIGNATURE" ]; then
     echo "🎨 Generating ${VARIANT} variant assets for this install..."
 
     if ! command -v python3 &>/dev/null; then
@@ -137,6 +189,7 @@ if [ "$VARIANT" != "$DEFAULT_VARIANT" ]; then
     python3 "${SCRIPT_DIR}/scripts/generate_frames.py" \
         --all \
         --variant "$VARIANT" \
+        --signature "$SIGNATURE" \
         --output "${TMP_ASSETS_DIR}/frames" \
         --assets-output "$TMP_ASSETS_DIR" \
         --progress-output "${TMP_ASSETS_DIR}/progress" || {
@@ -198,6 +251,9 @@ fi
 # Assets
 cp "${SOURCE_ASSETS_DIR}/background.png"   "${THEME_DIR}/assets/" || {
     echo -e "${RED}❌ background.png not found in theme/assets/${RESET}"; exit 1
+}
+cp "${SOURCE_ASSETS_DIR}/signature.png"   "${THEME_DIR}/assets/" || {
+    echo -e "${RED}❌ signature.png not found in theme/assets/${RESET}"; exit 1
 }
 # Clean old frames first (prevents stale frames when count changes)
 rm -f "${THEME_DIR}/assets/frames/"*.png 2>/dev/null || true
