@@ -52,11 +52,11 @@ Three `.plymouth` files exist for the visual variants:
 ```
 theme/
 ├── CipherBoot.plymouth          # Cipher variant descriptor
-├── CipherBoot-ghost.plymouth    # Ghost variant
-└── CipherBoot-neon.plymouth     # Neon variant (default install)
+├── CipherBoot-ghost.plymouth    # Ghost variant (default install)
+└── CipherBoot-neon.plymouth     # Neon variant
 ```
 
-All variants share the same installed `ImageDir` and `ScriptFile`. Neon is the default install. During install, `install.sh --variant <name>` generates non-default variant frame, background, progress, and signature assets into a temporary directory and then copies those assets into `/usr/share/plymouth/themes/CipherBoot/`.
+All variants share the same installed `ImageDir` and `ScriptFile`. Ghost is the default install. During install, `install.sh --variant <name>` generates non-default variant frame, background, progress, and signature assets into a temporary directory and then copies those assets into `/usr/share/plymouth/themes/CipherBoot/`.
 
 ---
 
