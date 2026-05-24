@@ -67,7 +67,12 @@ def generate_preview(frames_dir: Path, progress_dir: Path, output: Path,
     else:
         indices = list(range(total))
 
-    # Load progress bar assets
+    # Load overlay/progress assets
+    signature_path = progress_dir.parent / "signature.png"
+    has_signature = signature_path.exists()
+    if has_signature:
+        signature_orig = Image.open(signature_path).convert("RGBA")
+
     bar_bg_path = progress_dir / "progress_bar_bg.png"
     bar_fg_path = progress_dir / "progress_bar_fg.png"
     has_bars = bar_bg_path.exists() and bar_fg_path.exists()
@@ -85,6 +90,10 @@ def generate_preview(frames_dir: Path, progress_dir: Path, output: Path,
 
         # Resize to GIF dimensions
         img = img.resize((gif_width, gif_height), Image.LANCZOS)
+
+        if has_signature:
+            signature_scaled = signature_orig.resize((gif_width, gif_height), Image.LANCZOS)
+            img = Image.alpha_composite(img.convert("RGBA"), signature_scaled).convert("RGB")
 
         # Draw simulated progress bar overlay
         if has_bars:
