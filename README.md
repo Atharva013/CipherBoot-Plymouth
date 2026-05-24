@@ -11,7 +11,7 @@
 
 <br>
 
-*A cyberpunk-inspired Plymouth boot splash theme featuring neon cipher-rain animation, a compact progress bar, and installer support for Ubuntu-based and Arch-based distributions.*
+*A cyberpunk-inspired Plymouth boot splash theme featuring ghost, neon, and cipher rain variants, a compact progress bar, optional boot signatures, and installer support for Ubuntu-based and Arch-based distributions.*
 
 <br>
 
@@ -29,7 +29,7 @@
 |---|---|
 | Distro detection | Ubuntu and Arch family detection via `/etc/os-release` |
 | Install flow | Theme install, Plymouth registration, initramfs rebuild |
-| Variants | Neon default, plus ghost and cipher variants |
+| Variants | Ghost default, plus neon and cipher variants |
 | Preview | Reliable frame preview, plus best-effort Plymouth desktop preview |
 | Maintenance | Clean uninstall, GRUB backup, validation script |
 | Assets | 48 generated PNG8 frames, about 1.8 MB total |
@@ -75,7 +75,7 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-Reboot to see the default neon variant.
+Reboot to see the default ghost variant.
 
 The default install keeps the classic cipher-rain splash without a boot signature.
 
@@ -105,11 +105,11 @@ sudo ./install.sh
 
 | Flag | Description |
 |---|---|
-| `--variant neon` | Install the default neon variant |
-| `--variant ghost` | Install the ghost colour variant |
+| `--variant ghost` | Install the default ghost variant |
+| `--variant neon` | Install the neon colour variant |
 | `--variant cipher` | Install the teal cipher variant |
 | `--signature` | Ask for a centered boot signature during install |
-| `--signature "Dr. Octopus"` | Add a centered boot signature directly, max 16 characters |
+| `--signature "Dr.Octopus"` | Add a centered boot signature directly, max 16 characters |
 | `--no-signature` | Explicitly install without a boot signature |
 | `--no-grub` | Skip GRUB configuration (if you manage GRUB manually) |
 
@@ -139,14 +139,14 @@ CipherBoot ships with **3 visual variants**. Choose during install or switch any
 
 | Variant | Description |
 |---|---|
-| `neon` | Default — high-contrast green-on-black terminal aesthetic |
-| `ghost` | Soft cyan pulse with dark navy background |
+| `ghost` | Default — soft cyan pulse with dark navy background |
+| `neon` | High-contrast green-on-black terminal aesthetic |
 | `cipher` | Teal cipher rain on deep black |
 
 To switch variants after install:
 
 ```bash
-sudo ./install.sh --variant ghost
+sudo ./install.sh --variant neon
 ```
 
 Variant installs generate the matching frame/background/progress assets into a temporary directory, then copy those generated assets into the Plymouth theme directory.
@@ -159,7 +159,7 @@ CipherBoot can place a short name, handle, or machine label in the center of the
 
 ```bash
 sudo ./install.sh --signature
-sudo ./install.sh --variant neon --signature "Dr. Octopus"
+sudo ./install.sh --variant ghost --signature "Dr.Octopus"
 ```
 
 Plain `sudo ./install.sh` does not add a signature. Use `--signature` only when you want one.
