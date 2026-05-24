@@ -7,7 +7,7 @@
 #           Arch Linux, EndeavourOS, Manjaro, Garuda, CachyOS
 #
 # Usage:
-#   sudo ./install.sh                     # Install default (neon) variant
+#   sudo ./install.sh                     # Install default (ghost) variant
 #   sudo ./install.sh --variant cipher    # Install cipher variant
 #   sudo ./install.sh --variant ghost     # Install ghost variant
 #   sudo ./install.sh --signature         # Ask for a centered boot signature
@@ -29,7 +29,7 @@ RESET='\033[0m'
 THEME_NAME="CipherBoot"
 THEME_DIR="/usr/share/plymouth/themes/${THEME_NAME}"
 EXPECTED_FRAME_COUNT=48
-DEFAULT_VARIANT="neon"
+DEFAULT_VARIANT="ghost"
 VARIANT="$DEFAULT_VARIANT"
 CONFIGURE_GRUB="yes"
 SIGNATURE=""
@@ -82,10 +82,10 @@ while [[ "$#" -gt 0 ]]; do
             SIGNATURE_MODE="none"
             ;;
         --help|-h)
-            echo "Usage: sudo ./install.sh [--variant neon|ghost|cipher] [--signature [TEXT]] [--no-signature] [--no-grub]"
+            echo "Usage: sudo ./install.sh [--variant ghost|neon|cipher] [--signature [TEXT]] [--no-signature] [--no-grub]"
             echo ""
             echo "Options:"
-            echo "  --variant    Choose colour variant: neon (default), ghost, cipher"
+            echo "  --variant    Choose colour variant: ghost (default), neon, cipher"
             echo "  --signature  Add a centered boot signature; omit TEXT to be prompted"
             echo "  --no-signature"
             echo "               Explicitly install without a boot signature"
@@ -142,7 +142,7 @@ if [ "$SIGNATURE_MODE" = "ask" ] && [ -t 0 ]; then
     fi
 elif [ "$SIGNATURE_MODE" = "ask" ]; then
     echo -e "${RED}❌ --signature needs text when running non-interactively.${RESET}"
-    echo -e "   Example: ${CYAN}sudo ./install.sh --signature \"Dr. Octopus\"${RESET}"
+    echo -e "   Example: ${CYAN}sudo ./install.sh --signature \"Dr.Octopus\"${RESET}"
     exit 1
 fi
 
@@ -521,7 +521,7 @@ fi
 echo ""
 echo -e "   → ${BOLD}Reboot${RESET} to see your new boot screen."
 echo -e "   → Preview without rebooting: ${CYAN}sudo ./preview.sh${RESET}"
-echo -e "   → Switch variant:            ${CYAN}sudo ./install.sh --variant ghost${RESET}"
+echo -e "   → Switch variant:            ${CYAN}sudo ./install.sh --variant neon${RESET}"
 echo -e "   → Uninstall:                 ${CYAN}sudo ./uninstall.sh${RESET}"
 echo ""
 echo -e "   ${CYAN}https://github.com/Atharva013/CipherBoot-Plymouth${RESET}"
