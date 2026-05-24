@@ -10,8 +10,9 @@
 #   sudo ./install.sh                     # Install default (neon) variant
 #   sudo ./install.sh --variant cipher    # Install cipher variant
 #   sudo ./install.sh --variant ghost     # Install ghost variant
+#   sudo ./install.sh --signature         # Ask for a centered boot signature
 #   sudo ./install.sh --signature "ROOT-LAB"
-#   sudo ./install.sh --no-signature      # Disable interactive signature prompt
+#   sudo ./install.sh --no-signature      # Explicitly install without signature
 #   sudo ./install.sh --no-grub           # Skip GRUB configuration
 
 set -e   # Exit immediately on any error
@@ -32,7 +33,7 @@ DEFAULT_VARIANT="neon"
 VARIANT="$DEFAULT_VARIANT"
 CONFIGURE_GRUB="yes"
 SIGNATURE=""
-SIGNATURE_MODE="ask"
+SIGNATURE_MODE="none"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_ASSETS_DIR="${SCRIPT_DIR}/theme/assets"
 TMP_ASSETS_DIR=""
@@ -68,27 +69,26 @@ while [[ "$#" -gt 0 ]]; do
             CONFIGURE_GRUB="no"
             ;;
         --signature)
-            if [ "$#" -lt 2 ] || [[ "$2" == --* ]]; then
-                echo -e "${RED}❌ Missing value for --signature.${RESET}"
-                echo "   Example: sudo ./install.sh --signature \"Dr. Octopus\""
-                exit 1
+            if [ "$#" -ge 2 ] && [[ "$2" != --* ]]; then
+                SIGNATURE="$(sanitize_signature "$2")"
+                SIGNATURE_MODE="set"
+                shift
+            else
+                SIGNATURE_MODE="ask"
             fi
-            SIGNATURE="$(sanitize_signature "$2")"
-            SIGNATURE_MODE="set"
-            shift
             ;;
         --no-signature)
             SIGNATURE=""
             SIGNATURE_MODE="none"
             ;;
         --help|-h)
-            echo "Usage: sudo ./install.sh [--variant neon|ghost|cipher] [--signature TEXT] [--no-signature] [--no-grub]"
+            echo "Usage: sudo ./install.sh [--variant neon|ghost|cipher] [--signature [TEXT]] [--no-signature] [--no-grub]"
             echo ""
             echo "Options:"
             echo "  --variant    Choose colour variant: neon (default), ghost, cipher"
-            echo "  --signature  Add a centered boot signature, max 16 characters"
+            echo "  --signature  Add a centered boot signature; omit TEXT to be prompted"
             echo "  --no-signature"
-            echo "               Disable the interactive signature prompt"
+            echo "               Explicitly install without a boot signature"
             echo "  --no-grub    Skip GRUB configuration (if you manage GRUB manually)"
             exit 0
             ;;
@@ -126,14 +126,34 @@ fi
 source "${SCRIPT_DIR}/scripts/detect_distro.sh"
 detect_distro
 
+# ─── Optional Boot Signature ──────────────────────────────────────────────────
+if [ "$SIGNATURE_MODE" = "ask" ] && [ -t 0 ]; then
+    echo "✍️  Optional boot signature"
+    echo "   Add a short name/handle in the center of the splash? Max 16 characters."
+    SIGNATURE_INPUT=""
+    read -r -p "   Signature [leave blank to disable]: " SIGNATURE_INPUT || true
+    SIGNATURE="$(sanitize_signature "$SIGNATURE_INPUT")"
+    if [ -n "$SIGNATURE_INPUT" ] && [ -z "$SIGNATURE" ]; then
+        echo -e "${YELLOW}   Signature skipped: no supported characters found.${RESET}"
+    elif [ -n "$SIGNATURE" ]; then
+        echo -e "   Using signature: ${GREEN}${SIGNATURE}${RESET}"
+    else
+        echo "   Signature disabled."
+    fi
+elif [ "$SIGNATURE_MODE" = "ask" ]; then
+    echo -e "${RED}❌ --signature needs text when running non-interactively.${RESET}"
+    echo -e "   Example: ${CYAN}sudo ./install.sh --signature \"Dr. Octopus\"${RESET}"
+    exit 1
+fi
+
 # ─── Banner ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}⚡ CipherBoot Plymouth Theme Installer${RESET}"
-echo -e "   Distro  : ${GREEN}${DISTRO_NAME}${RESET}"
-echo -e "   Family  : ${GREEN}${DISTRO_FAMILY}${RESET}"
-echo -e "   Variant : ${GREEN}${VARIANT}${RESET}"
+echo -e "   Distro   : ${GREEN}${DISTRO_NAME}${RESET}"
+echo -e "   Family   : ${GREEN}${DISTRO_FAMILY}${RESET}"
+echo -e "   Variant  : ${GREEN}${VARIANT}${RESET}"
 echo -e "   Signature: ${GREEN}${SIGNATURE:-disabled}${RESET}"
-echo -e "   Target  : ${GREEN}${THEME_DIR}${RESET}"
+echo -e "   Target   : ${GREEN}${THEME_DIR}${RESET}"
 echo ""
 
 # ─── Check Plymouth is Installed ──────────────────────────────────────────────
@@ -156,22 +176,6 @@ if ! command -v plymouthd &>/dev/null; then
         }
     fi
     echo -e "${GREEN}✅ Plymouth installed.${RESET}"
-fi
-
-# ─── Optional Boot Signature ──────────────────────────────────────────────────
-if [ "$SIGNATURE_MODE" = "ask" ] && [ -t 0 ]; then
-    echo "✍️  Optional boot signature"
-    echo "   Add a short name/handle in the center of the splash? Max 16 characters."
-    SIGNATURE_INPUT=""
-    read -r -p "   Signature [leave blank to disable]: " SIGNATURE_INPUT || true
-    SIGNATURE="$(sanitize_signature "$SIGNATURE_INPUT")"
-    if [ -n "$SIGNATURE_INPUT" ] && [ -z "$SIGNATURE" ]; then
-        echo -e "${YELLOW}   Signature skipped: no supported characters found.${RESET}"
-    elif [ -n "$SIGNATURE" ]; then
-        echo -e "   Using signature: ${GREEN}${SIGNATURE}${RESET}"
-    else
-        echo "   Signature disabled."
-    fi
 fi
 
 # ─── Prepare Variant Assets ───────────────────────────────────────────────────
@@ -511,6 +515,9 @@ fi
 # ─── Success ──────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}${BOLD}✅ CipherBoot (${VARIANT} variant) installed successfully!${RESET}"
+if [ -n "$SIGNATURE" ]; then
+    echo -e "   Signature: ${GREEN}${SIGNATURE}${RESET}"
+fi
 echo ""
 echo -e "   → ${BOLD}Reboot${RESET} to see your new boot screen."
 echo -e "   → Preview without rebooting: ${CYAN}sudo ./preview.sh${RESET}"

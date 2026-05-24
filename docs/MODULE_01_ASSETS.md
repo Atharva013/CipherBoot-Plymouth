@@ -88,6 +88,9 @@ python3 scripts/generate_frames.py --all --signature "Dr. Octopus"
 # Generate with a specific variant
 python3 scripts/generate_frames.py --all --variant ghost
 
+# Generate a variant with a matching signature overlay
+python3 scripts/generate_frames.py --all --variant neon --signature "Dr. Octopus"
+
 # Reproducible output
 python3 scripts/generate_frames.py --all --seed 42
 ```

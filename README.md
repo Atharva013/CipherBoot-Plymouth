@@ -77,6 +77,8 @@ sudo ./install.sh
 
 Reboot to see the default neon variant.
 
+The default install keeps the classic cipher-rain splash without a boot signature.
+
 ### Arch Linux Prerequisites
 
 Plymouth is not installed by default on Arch. Install it first:
@@ -84,7 +86,6 @@ Plymouth is not installed by default on Arch. Install it first:
 ```bash
 # From the official extra repository
 sudo pacman -S plymouth
-
 ```
 
 You also need to add `plymouth` to your `mkinitcpio` HOOKS (the install script handles this automatically, but if you prefer manual setup):
@@ -107,8 +108,9 @@ sudo ./install.sh
 | `--variant neon` | Install the default neon variant |
 | `--variant ghost` | Install the ghost colour variant |
 | `--variant cipher` | Install the teal cipher variant |
-| `--signature "Dr. Octopus"` | Add a centered boot signature, max 16 characters |
-| `--no-signature` | Disable the interactive signature prompt |
+| `--signature` | Ask for a centered boot signature during install |
+| `--signature "Dr. Octopus"` | Add a centered boot signature directly, max 16 characters |
+| `--no-signature` | Explicitly install without a boot signature |
 | `--no-grub` | Skip GRUB configuration (if you manage GRUB manually) |
 
 ---
@@ -156,8 +158,11 @@ Variant installs generate the matching frame/background/progress assets into a t
 CipherBoot can place a short name, handle, or machine label in the center of the splash:
 
 ```bash
+sudo ./install.sh --signature
 sudo ./install.sh --variant neon --signature "Dr. Octopus"
 ```
+
+Plain `sudo ./install.sh` does not add a signature. Use `--signature` only when you want one.
 
 The installer normalizes signatures to uppercase, supports letters, numbers, spaces, dots, hyphens, and underscores, and caps the text at 16 characters so it stays centered with comfortable side spacing.
 

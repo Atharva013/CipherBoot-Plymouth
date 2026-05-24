@@ -34,7 +34,7 @@
 
 Neon is the default variant. For non-default variants, the installer generates the selected variant's assets in `/tmp` before copying them into the Plymouth theme directory. This keeps the repository's default assets unchanged while making `--variant ghost` and `--variant cipher` visually real.
 
-If a boot signature is provided, the installer also regenerates assets in `/tmp` so the signature colour matches the selected variant.
+The default install does not add a boot signature. If a signature is requested with `--signature`, the installer regenerates assets in `/tmp` so the signature colour matches the selected variant.
 
 ---
 
@@ -71,8 +71,8 @@ sudo ./install.sh --no-grub
 | Flag | Description |
 |---|---|
 | `--variant neon\|ghost\|cipher` | Choose colour variant (default: neon) |
-| `--signature TEXT` | Add a centered boot signature, max 16 characters |
-| `--no-signature` | Disable the interactive signature prompt |
+| `--signature [TEXT]` | Add a centered boot signature; omit text to be prompted |
+| `--no-signature` | Explicitly install without a boot signature |
 | `--no-grub` | Skip GRUB configuration entirely |
 | `--help`, `-h` | Show usage |
 
