@@ -56,7 +56,7 @@ theme/
 └── CipherBoot-neon.plymouth     # Neon variant (default install)
 ```
 
-All variants share the same installed `ImageDir` and `ScriptFile`. Neon is the default install. During install, `install.sh --variant <name>` generates non-default variant frame, background, and progress assets into a temporary directory and then copies those assets into `/usr/share/plymouth/themes/CipherBoot/`.
+All variants share the same installed `ImageDir` and `ScriptFile`. Neon is the default install. During install, `install.sh --variant <name>` generates non-default variant frame, background, progress, and signature assets into a temporary directory and then copies those assets into `/usr/share/plymouth/themes/CipherBoot/`.
 
 ---
 
