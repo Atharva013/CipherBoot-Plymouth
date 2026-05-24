@@ -13,7 +13,8 @@ This module covers the creation of all **visual assets** used by the Plymouth th
 
 1. **Animation Frames** — a sequence of PNG images that play like a flipbook during boot
 2. **Progress Bar Sprites** — the visual indicator showing boot progress (0% → 100%)
-3. **Background Image** — the full-screen base canvas behind the animation
+3. **Signature Overlay** — an optional centered name/handle rendered above the rain
+4. **Background Image** — the full-screen base canvas behind the animation
 
 These files are what the user *actually sees*. Everything else (scripts, config) just controls how these files are displayed.
 
@@ -45,6 +46,14 @@ These files are what the user *actually sees*. Everything else (scripts, config)
 - **File name:** `background.png`
 - **Location:** `theme/assets/`
 
+### Signature Overlay
+- **Format:** Transparent PNG
+- **Resolution:** `960×540` (full-screen overlay, upscaled by script at runtime)
+- **File name:** `signature.png`
+- **Location:** `theme/assets/`
+- **Text limit:** 16 characters
+- **Supported characters:** letters, numbers, spaces, dots, hyphens, and underscores
+
 ---
 
 ## Design Guidelines (CipherBoot Aesthetic)
@@ -72,6 +81,9 @@ pip install pillow
 
 # Generate all assets (frames + background + progress bar)
 python3 scripts/generate_frames.py --all
+
+# Generate assets with a signature overlay
+python3 scripts/generate_frames.py --all --signature "Dr. Octopus"
 
 # Generate with a specific variant
 python3 scripts/generate_frames.py --all --variant ghost
@@ -108,4 +120,5 @@ The generator searches for monospace fonts in common locations:
 - [x] `theme/assets/progress/progress_bar_bg.png` exists
 - [x] `theme/assets/progress/progress_bar_fg.png` exists
 - [x] `theme/assets/background.png` exists
+- [x] `theme/assets/signature.png` exists
 - [x] Visually reviewed frames — neon cipher rain looks correct
