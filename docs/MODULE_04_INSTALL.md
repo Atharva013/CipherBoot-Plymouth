@@ -32,7 +32,7 @@
 | Rebuild initrd | `update-initramfs -u` | `mkinitcpio -P` |
 | Extra setup | — | Auto-adds `plymouth` to `mkinitcpio` HOOKS |
 
-Neon is the default variant. For non-default variants, the installer generates the selected variant's assets in `/tmp` before copying them into the Plymouth theme directory. This keeps the repository's default assets unchanged while making `--variant ghost` and `--variant cipher` visually real.
+Ghost is the default variant. For non-default variants, the installer generates the selected variant's assets in `/tmp` before copying them into the Plymouth theme directory. This keeps the repository's default assets unchanged while making `--variant neon` and `--variant cipher` visually real.
 
 The default install does not add a boot signature. If a signature is requested with `--signature`, the installer regenerates assets in `/tmp` so the signature colour matches the selected variant.
 
@@ -70,7 +70,7 @@ sudo ./install.sh --no-grub
 
 | Flag | Description |
 |---|---|
-| `--variant neon\|ghost\|cipher` | Choose colour variant (default: neon) |
+| `--variant ghost\|neon\|cipher` | Choose colour variant (default: ghost) |
 | `--signature [TEXT]` | Add a centered boot signature; omit text to be prompted |
 | `--no-signature` | Explicitly install without a boot signature |
 | `--no-grub` | Skip GRUB configuration entirely |
