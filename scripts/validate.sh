@@ -38,6 +38,7 @@ for i in $(seq 0 47); do
 done
 
 test -f theme/assets/background.png
+test -f theme/assets/signature.png
 test -f theme/assets/progress/progress_bar_bg.png
 test -f theme/assets/progress/progress_bar_fg.png
 
