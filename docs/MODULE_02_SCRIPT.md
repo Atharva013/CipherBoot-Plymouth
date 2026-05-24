@@ -12,6 +12,7 @@
 The `.script` file is the **brain** of the Plymouth theme. It's written in Plymouth's own scripting language (similar to JavaScript/C) and controls:
 
 - Loading and upscaling half-resolution frames to native screen size
+- Loading an optional centered boot signature overlay
 - Animation frame advancement via a continuous refresh callback
 - Smooth, hybrid progress bar (time-based + system-reported)
 - Text and status message rendering
@@ -67,7 +68,7 @@ Plymouth.SetBootProgressFunction(fun (time, progress) {
 
 ## Architecture: `CipherBoot.script`
 
-The script has 10 well-documented sections:
+The script has 11 well-documented sections:
 
 ### 1. Screen Setup
 - Get screen dimensions
@@ -82,11 +83,16 @@ The script has 10 well-documented sections:
 - Each frame is 960×540 — upscaled to screen resolution via `Scale()`
 - Upscaling is done once at load time, not every frame
 
-### 4. Progress Bar Setup
+### 4. Boot Signature Overlay
+- Loads `signature.png` as a transparent full-screen overlay
+- Places it above the rain and below status/password text
+- Temporarily hides it while password prompts are displayed
+
+### 5. Progress Bar Setup
 - Load `progress_bar_bg.png` and `progress_bar_fg.png`
 - Position at bottom-centre of screen
 
-### 5. Refresh Callback (Animation + Smooth Progress)
+### 6. Refresh Callback (Animation + Smooth Progress)
 The core loop runs at 30 refreshes per second, with animation frames advancing every third refresh:
 
 ```plaintext
@@ -102,23 +108,23 @@ fun refresh_callback() {
 
 **Why hybrid progress?** systemd often reports progress up to ~0.5 (50%) and then stops before Plymouth quits. Fast restarts can make this more obvious, so the time-based floor reaches 100% during the refresh loop instead of waiting for the quit callback.
 
-### 6. Boot/System Progress Target Setter
+### 7. Boot/System Progress Target Setter
 - Receives systemd's reported progress
 - Clamps progress into the documented `0.0` to `1.0` range
 - Stores the highest reported progress; the refresh callback handles the rest
 
-### 7. Message Display
+### 8. Message Display
 - Renders system messages ("Checking disks...") in cyan text at the bottom
 
-### 8. Password Prompt
+### 9. Password Prompt
 - For LUKS-encrypted disk unlock
 - Shows prompt text and bullet dots for typed characters
 
-### 9. Normal Display Callback
+### 10. Normal Display Callback
 - Clears LUKS/password prompt sprites after the prompt exits
 - Prevents stale prompt state during the next boot phase
 
-### 10. Quit Handler (DM Handoff)
+### 11. Quit Handler (DM Handoff)
 ```plaintext
 Plymouth.SetQuitFunction(fun () {
     # Complete progress bar to 100%
@@ -133,8 +139,9 @@ Plymouth.SetQuitFunction(fun () {
 
 ## Checklist
 
-- [x] `theme/CipherBoot.script` created with all 10 sections
+- [x] `theme/CipherBoot.script` created with all 11 sections
 - [x] Half-resolution frame upscaling implemented
+- [x] Optional boot signature overlay implemented
 - [x] Refresh callback at 30fps with 10fps animation cadence
 - [x] Hybrid progress bar (time + system, smooth interpolation)
 - [x] Quit handler preserves the final frame for the DM transition where supported
